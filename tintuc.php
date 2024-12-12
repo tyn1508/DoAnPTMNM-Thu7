@@ -10,22 +10,21 @@ session_start();
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="shortcut icon" href="images/favicon.png">
   <title>Welcome to Fesata Shop</title>
-    <?php
-  include_once __DIR__ . "/styles.php";
+  <?php
+    include_once __DIR__ .  "/styles.php";
   ?>
 </head>
 <body id="home">
   <div class="wrapper">
      <?php
-     include_once __DIR__ . "/fontend/layouts/header.php";
-     ?>
+        include_once __DIR__ . "/fontend/layouts/header.php"; ?>
      <div class="container_fullwidth">
         <div class="container">
            <div class="hot-products">
               <h3 class="title"><strong>Tin Tức</strong></h3>
               <div class="row">
-                 <?php
-                 // Bước 1: Kết nối đến cơ sở dữ liệu
+                 <?php 
+              // Bước 1: Kết nối đến cơ sở dữ liệu
                  include_once __DIR__ . "/dbconnect.php";
 
                  // Bước 2: Thực hiện câu truy vấn SQL
@@ -69,7 +68,7 @@ session_start();
      </div>
      <div class="clearfix"></div>
      <?php
-     include_once __DIR__ . "/fontend/layouts/footer.php";
+    include_once __DIR__ . "/fontend/layouts/footer.php";
      ?>
   </div>
   <?php
