@@ -13,12 +13,12 @@ if (isset($_POST['productId'])) {
    }
 
    // Bước 3: Kiểm tra xem sản phẩm đã tồn tại trong giỏ hàng chưa
-   if (isset($_SESSION['cart'][$productID])) { // Lỗi: Sử dụng biến sai tên ($productID)
+   if (isset($_SESSION['cart'][$productId])) { // Lỗi: Sử dụng biến sai tên ($productID)
       // Nếu sản phẩm đã tồn tại, tăng số lượng lên 1
-      $_SESSION['cart'][$productID]++; // Lỗi: Sử dụng biến sai tên ($productID)
+      $_SESSION['cart'][$productId]++; // Lỗi: Sử dụng biến sai tên ($productID)
    } else {
       // Nếu sản phẩm chưa tồn tại, thêm vào giỏ hàng với số lượng là 1
-      $_SESSION['cart'][$productID] = 1; // Lỗi: Sử dụng biến sai tên ($productID)
+      $_SESSION['cart'][$productId] = 1; // Lỗi: Sử dụng biến sai tên ($productID)
    }
 
    // Bước 4: Trả về phản hồi thành công
