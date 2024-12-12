@@ -4,57 +4,51 @@ session_start();
 // Kiểm tra xem người dùng đã bấm nút Đặt hàng chưa
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['cart'])) {
     // Kiểm tra các trường thông tin người đặt hàng
-    if (isset($_POST['name'], $_POST['address'], $_POST['phone'])) {
-        // Lấy dữ liệu từ biểu mẫu và kiểm tra an toàn
-        $name = htmlspecialchars(trim($_POST['name']));
-        $address = htmlspecialchars(trim($_POST['address']));
-        $phone = htmlspecialchars(trim($_POST['phone']));
+    if (isset($_POST['name']) && isset($_POST['address']) && isset($_POST['phone'])) {
+        $name = $_POST['name'];
+        $address = $_POST['address'];
+        $phone = $_POST['phone'];
 
-        // Kiểm tra dữ liệu đầu vào
-        if (strlen($name) > 100 || strlen($address) > 255 || !preg_match('/^[0-9]{10,15}$/', $phone)) {
-            echo "Dữ liệu nhập không hợp lệ.";
-            exit();
-        }
-
-        // Kết nối CSDL
+        // Thực hiện lưu thông tin đặt hàng vào CSDL
         include_once __DIR__ . "/dbconnect.php";
 
-        // Sử dụng prepared statement để bảo vệ chống SQL Injection
-        $stmt = $conn->prepare("INSERT INTO orders (order_date, total_amount, status, name, address, phone) VALUES (NOW(), 0, 'Đang xử lý', ?, ?, ?)");
-        $stmt->bind_param("sss", $name, $address, $phone);
+        // Tạo câu truy vấn để chèn dữ liệu vào bảng orders
+        $query = "INSERT INTO orders (order_date, total_amount, status, name, address, phone)
+                  VALUES (NOW(), 0, 'Đang xử lý', '$name', '$address', '$phone')";
 
-        if ($stmt->execute()) {
+        // Thực thi câu truy vấn
+        $result = mysqli_query($conn, $query);
+
+        if ($result) {
             // Lấy order_id mới được tạo
-            $order_id = $stmt->insert_id;
+            $order_id = mysqli_insert_id($conn);
 
-            // Lặp qua các sản phẩm trong giỏ hàng
-            $stmt_product = $conn->prepare("SELECT price FROM products WHERE product_id = ?");
-            $stmt_order_details = $conn->prepare("INSERT INTO order_details (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)");
-
+            // Lặp qua các sản phẩm trong giỏ hàng để lưu thông tin chi tiết đơn hàng
             foreach ($_SESSION['cart'] as $product_id => $quantity) {
-                // Kiểm tra dữ liệu đầu vào của product_id và quantity
-                if (!is_numeric($product_id) || !is_numeric($quantity) || $quantity <= 0) {
-                    continue;
-                }
+                // Lấy thông tin sản phẩm từ CSDL
+                $query = "SELECT price FROM products WHERE product_id = '$product_id'";
+                $result = mysqli_query($conn, $query);
 
-                $stmt_product->bind_param("i", $product_id);
-                $stmt_product->execute();
-                $result = $stmt_product->get_result();
+                if ($result && mysqli_num_rows($result) > 0) {
+                    $row = mysqli_fetch_assoc($result);
+                    $price = floatval($row['price']); // Chuyển đổi sang kiểu số
 
-                if ($result && $row = $result->fetch_assoc()) {
-                    $price = floatval($row['price']);
+                    // Tính toán tổng số tiền cho mỗi sản phẩm
                     $subtotal = $price * $quantity;
 
-                    // Chèn vào bảng order_details
-                    $stmt_order_details->bind_param("iiid", $order_id, $product_id, $quantity, $price);
-                    $stmt_order_details->execute();
+                    // Tạo câu truy vấn để chèn dữ liệu vào bảng order_details
+                    $query = "INSERT INTO order_details (order_id, product_id, quantity, price)
+                              VALUES ('$order_id', '$product_id', '$quantity', '$price')";
+
+                    // Thực thi câu truy vấn
+                    mysqli_query($conn, $query);
                 }
             }
 
             // Cập nhật tổng số tiền cho đơn hàng
-            $stmt_update = $conn->prepare("UPDATE orders SET total_amount = (SELECT SUM(price * quantity) FROM order_details WHERE order_id = ?) WHERE order_id = ?");
-            $stmt_update->bind_param("ii", $order_id, $order_id);
-            $stmt_update->execute();
+            $query = "UPDATE orders SET total_amount = (SELECT SUM(price * quantity) FROM order_details WHERE order_id = '$order_id')
+                      WHERE order_id = '$order_id'";
+            mysqli_query($conn, $query);
 
             // Xóa thông tin giỏ hàng sau khi đặt hàng thành công
             unset($_SESSION['cart']);
@@ -63,12 +57,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['cart'])) {
             header("Location: cart.php?order_success=true");
             exit();
         } else {
+            // Đặt hàng không thành công
             echo "Đặt hàng không thành công. Vui lòng thử lại.";
         }
 
-        // Đóng kết nối
-        $stmt->close();
-        $conn->close();
+        // Đóng kết nối CSDL
+        mysqli_close($conn);
     } else {
         echo "Vui lòng nhập đầy đủ thông tin người đặt hàng.";
     }
@@ -83,11 +77,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['cart'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="shortcut icon" href="images/favicon.png">
     <title>Đặt hàng</title>
-    <?php include_once __DIR__ . "/styles.php"; ?>
+    <?php
+    include_once __DIR__ . "/styles.php";
+    ?>
 </head>
 <body>
     <div class="wrapper">
-        <?php include_once __DIR__ . "/fontend/layouts/header.php"; ?>
+        <?php
+        include_once __DIR__ . "/fontend/layouts/header.php";
+        ?>
         <div class="container_fullwidth">
             <div class="container">
                 <div class="row">
@@ -112,8 +110,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['cart'])) {
                 </div>
             </div>
         </div>
-        <?php include_once __DIR__ . "/fontend/layouts/footer.php"; ?>
+        <?php
+        include_once __DIR__ . "/fontend/layouts/footer.php";
+        ?>
     </div>
-    <?php include_once __DIR__ . "/scripts.php"; ?>
+    <?php
+    include_once __DIR__ . "/scripts.php";
+    ?>
 </body>
 </html>
