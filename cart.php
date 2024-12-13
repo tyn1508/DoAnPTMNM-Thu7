@@ -46,7 +46,7 @@ session_start();
                                     // Bước 3: Lặp qua các sản phẩm trong giỏ hàng
                                     foreach ($_SESSION['cart'] as $product_id => $quantity) {
                                         // Bước 4: Lấy thông tin sản phẩm từ cơ sở dữ liệu
-                                        $query = "SELECT product_id, name, price FROM products WHERE product_id = '$product_id'";
+                                        $query = "SEL CT product_id, name, price FROM products WHERE product_id = '$product_id'";
                                         $result = mysqli_query($conn, $query);
 
                                         if ($result && mysqli_num_rows($result) > 0) {
